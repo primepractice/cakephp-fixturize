@@ -20,14 +20,14 @@ class TableCopyTestFixture extends CakeTestFixture {
  *
  * @var string
  */
-	public $sourceConfig = 'test_seed';
+    public $sourceConfig = 'test_seed';
 
 /**
  * List of table hashes
  *
  * @var array
  */
-	public static $_tableHashes = [];
+    public static $_tableHashes = [];
 
 /**
  * Initializes this fixture class
@@ -35,23 +35,23 @@ class TableCopyTestFixture extends CakeTestFixture {
  * @param DboSource $db
  * @return boolean
  */
-	public function create($db) {
-		if (!empty($this->fields)) {
-			return parent::create($db);
-		}
+    public function create($db) {
+        if (!empty($this->fields) || !$this->_isCompatableDataSource($db)) {
+            return parent::create($db);
+        }
 
-		$source = ConnectionManager::getDataSource($this->sourceConfig);
-		$sourceTable = $source->fullTableName($this->table);
+        $source = ConnectionManager::getDataSource($this->sourceConfig);
+        $sourceTable = $source->fullTableName($this->table);
 
-		$query = sprintf('DROP TABLE IF EXISTS %s', $db->fullTableName($this->table));
-		$db->execute($query, ['log' => false]);
+        $query = sprintf('DROP TABLE IF EXISTS %s', $db->fullTableName($this->table));
+        $db->execute($query, ['log' => false]);
 
-		$query = sprintf('CREATE TABLE %s LIKE %s', $db->fullTableName($this->table), $sourceTable);
-		$db->execute($query, ['log' => false]);
+        $query = sprintf('CREATE TABLE %s LIKE %s', $db->fullTableName($this->table), $sourceTable);
+        $db->execute($query, ['log' => false]);
 
-		$this->created[] = $db->configKeyName;
-		return true;
-	}
+        $this->created[] = $db->configKeyName;
+        return true;
+    }
 
 /**
  * Inserts records in the database
@@ -62,34 +62,34 @@ class TableCopyTestFixture extends CakeTestFixture {
  * @param DboSource $db
  * @return boolean
  */
-	public function insert($db) {
-		if ($this->_tableUnmodified($db)) {
-			return true;
-		}
+    public function insert($db) {
+        if ($this->_tableUnmodified($db)) {
+            return true;
+        }
 
-		if (!empty($this->records)) {
-			if (empty($this->fields)) {
-				$this->fields = $db->describe($this->table);
-			}
+        if (!empty($this->records) || !$this->_isCompatableDataSource($db)) {
+            if (empty($this->fields)) {
+                $this->fields = $db->describe($this->table);
+            }
 
-			$result = parent::insert($db);
-			static::$_tableHashes[$this->table] = $this->_hash($db);
-			return $result;
-		}
+            $result = parent::insert($db);
+            static::$_tableHashes[$this->table] = $this->_hash($db);
+            return $result;
+        }
 
-		$source = ConnectionManager::getDataSource($this->sourceConfig);
-		$sourceTable = $source->fullTableName($this->table);
+        $source = ConnectionManager::getDataSource($this->sourceConfig);
+        $sourceTable = $source->fullTableName($this->table);
 
-		$query = sprintf('TRUNCATE TABLE %s', $db->fullTableName($this->table));
-		$db->execute($query, ['log' => false]);
+        $query = sprintf('TRUNCATE TABLE %s', $db->fullTableName($this->table));
+        $db->execute($query, ['log' => false]);
 
-		$query = sprintf('INSERT INTO %s SELECT * FROM %s', $db->fullTableName($this->table), $sourceTable);
-		$db->execute($query, ['log' => false]);
+        $query = sprintf('INSERT INTO %s SELECT * FROM %s', $db->fullTableName($this->table), $sourceTable);
+        $db->execute($query, ['log' => false]);
 
-		static::$_tableHashes[$this->table] = $this->_hash($db);
+        static::$_tableHashes[$this->table] = $this->_hash($db);
 
-		return true;
-	}
+        return true;
+    }
 
 /**
  * Deletes all table information.
@@ -99,13 +99,13 @@ class TableCopyTestFixture extends CakeTestFixture {
  * @param DboSource $db
  * @return void
  */
-	public function truncate($db) {
-		if ($this->_tableUnmodified($db)) {
-			return true;
-		}
+    public function truncate($db) {
+        if ($this->_tableUnmodified($db)) {
+            return true;
+        }
 
-		return parent::truncate($db);
-	}
+        return parent::truncate($db);
+    }
 
 /**
  * Drops the table from the test datasource
@@ -113,11 +113,11 @@ class TableCopyTestFixture extends CakeTestFixture {
  * @param DboSource $db
  * @return void
  */
-	public function drop($db) {
-		unset(static::$_tableHashes[$this->table]);
+    public function drop($db) {
+        unset(static::$_tableHashes[$this->table]);
 
-		return parent::drop($db);
-	}
+        return parent::drop($db);
+    }
 
 /**
  * Test if a table is modified or not
@@ -130,17 +130,17 @@ class TableCopyTestFixture extends CakeTestFixture {
  * @param DboSource $db
  * @return boolean
  */
-	protected function _tableUnmodified($db) {
-		if (empty(static::$_tableHashes[$this->table])) {
-			return false;
-		}
+    protected function _tableUnmodified($db) {
+        if (empty(static::$_tableHashes[$this->table])) {
+            return false;
+        }
 
-		if (static::$_tableHashes[$this->table] === $this->_hash($db)) {
-			return true;
-		}
+        if (static::$_tableHashes[$this->table] === $this->_hash($db)) {
+            return true;
+        }
 
-		return false;
-	}
+        return false;
+    }
 
 /**
  * Get the table hash from MySQL for a specific table
@@ -148,9 +148,25 @@ class TableCopyTestFixture extends CakeTestFixture {
  * @param DboSource $db
  * @return string
  */
-	protected function _hash($db) {
-		$sourceHash = $db->execute(sprintf('CHECKSUM TABLE %s', $this->table), ['log' => false]);
-		return $sourceHash->fetch()->Checksum;
-	}
+    protected function _hash($db) {
+        if (!$this->_isCompatableDataSource($db)) {
+            return false;
+        }
+        $sourceHash = $db->execute(sprintf('CHECKSUM TABLE %s', $this->table), ['log' => false]);
+        return $sourceHash->fetch()->Checksum;
+    }
+
+/**
+ * Is the datasource compatable with the seed datasource
+ *
+ * @param DboSource $db
+ * @return bool
+ */
+    protected function _isCompatableDataSource($db) {
+        $configs = ConnectionManager::enumConnectionObjects();
+
+        return Hash::get($db->config, 'datasource')
+            == Hash::get($configs, $this->sourceConfig . '.datasource');
+    }
 
 }
