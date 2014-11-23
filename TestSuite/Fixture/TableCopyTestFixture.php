@@ -36,7 +36,7 @@ class TableCopyTestFixture extends CakeTestFixture {
  * @return boolean
  */
     public function create($db) {
-        if (!empty($this->fields) || !$this->_isCompatableDataSource($db)) {
+        if (!empty($this->fields) || !$this->_isCompatibleDataSource($db)) {
             return parent::create($db);
         }
 
@@ -67,7 +67,7 @@ class TableCopyTestFixture extends CakeTestFixture {
             return true;
         }
 
-        if (!empty($this->records) || !$this->_isCompatableDataSource($db)) {
+        if (!empty($this->records) || !$this->_isCompatibleDataSource($db)) {
             if (empty($this->fields)) {
                 $this->fields = $db->describe($this->table);
             }
@@ -149,7 +149,7 @@ class TableCopyTestFixture extends CakeTestFixture {
  * @return string
  */
     protected function _hash($db) {
-        if (!$this->_isCompatableDataSource($db)) {
+        if (!$this->_isCompatibleDataSource($db)) {
             return false;
         }
         $sourceHash = $db->execute(sprintf('CHECKSUM TABLE %s', $this->table), ['log' => false]);
@@ -157,12 +157,12 @@ class TableCopyTestFixture extends CakeTestFixture {
     }
 
 /**
- * Is the datasource compatable with the seed datasource
+ * Is the datasource compatible with the seed datasource
  *
  * @param DboSource $db
  * @return bool
  */
-    protected function _isCompatableDataSource($db) {
+    protected function _isCompatibleDataSource($db) {
         $configs = ConnectionManager::enumConnectionObjects();
 
         return Hash::get($db->config, 'datasource')
