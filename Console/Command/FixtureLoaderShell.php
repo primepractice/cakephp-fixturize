@@ -57,7 +57,12 @@ class FixtureLoaderShell extends AppShell {
 		if (!empty($folderContent[1])) {
 			foreach ($folderContent[1] as $file) {
 				if (substr($file, -11) === 'Fixture.php') {
-					$fixtures .= 'app.' . Inflector::underscore(substr($file, 0, - 11)) . ',';
+					if (is_string($this->params['plugin'])) {
+						$fixtures .= 'plugin.' . Inflector::underscore($this->params['plugin']) . '.';
+					} else {
+                        $fixtures .= 'app.';
+                    }
+					$fixtures .= Inflector::underscore(substr($file, 0, - 11)) . ',';
 				}
 			}
 		}
